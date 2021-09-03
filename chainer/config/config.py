@@ -7,7 +7,7 @@ model = "resnet50"
 
 # Hyper parameters
 EPOCHS = 100
-BATCH_SIZE = 8
+BATCH_SIZE = 2
 LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 

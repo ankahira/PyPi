@@ -10,6 +10,7 @@ from chainer.training import triggers
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
 
+
 import models.VGG
 from models.alexnet import AlexNet
 

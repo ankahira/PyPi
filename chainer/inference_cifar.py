@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 import argparse
-
 import chainer
-from train_mnist import MLP
-from train_mnist_model_parallel import ParallelMLP
-
+import time
+import chainer.links as L
+from chainer import training
+from chainer.training import extensions
 from chainer.datasets import get_cifar10
 import chainermn
 
+from models.alexnet_model_parallel import AlexNet
+from config import config
+
+
 
 def main():
+    comm = chainermn.create_communicator("naive")
+
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
@@ -36,30 +42,28 @@ def main():
     device.use()
 
     # Create a same model object as what you used for training
-    if 'result_model_parallel' in args.snapshot:
-        model = ParallelMLP(args.unit, 10, args.gpu, args.gpu)
-    else:
-        model = MLP(args.unit, 10)
+    model = L.Classifier(AlexNet(comm, num_classes=10))
+    optimizer = chainer.optimizers.MomentumSGD(0.001)
+    optimizer.setup(model)
 
-    # Load saved parameters from a NPZ file of the Trainer object
-    try:
-        chainer.serializers.load_npz(
-            args.snapshot, model, path='updater/model:main/predictor/')
-    except Exception:
-        chainer.serializers.load_npz(
-            args.snapshot, model, path='predictor/')
+    # # Load saved parameters from a NPZ file of the Trainer object
+    # try:
+    #     chainer.serializers.load_npz(
+    #         "result/snapshot_iter_12000", model, path='updater/model:main/predictor/')
+    # except Exception:
+    #     chainer.serializers.load_npz(
+    #         args.snapshot, model, path='predictor/')
 
-    model.to_device(device)
+    #model.to_device(device)
 
     # Prepare data
-    train, test = chainer.datasets.get_mnist()
-    x, answer = test[0]
-    x = device.send(x)
+    train, test = get_cifar10()
+    x = test.__getitem__(0)
     with chainer.using_config('train', False):
-        prediction = model(x[None, ...])[0].array.argmax()
+        prediction = model.forward(x)
 
     print('Prediction:', prediction)
-    print('Answer:', answer)
+    #print('Answer:', answer)
 
 
 if __name__ == '__main__':

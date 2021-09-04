@@ -101,6 +101,7 @@ def main():
     # Take a snapshot at each epoch
     trainer.extend(extensions.snapshot(filename='snaphot_epoch_{.updater.epoch}'))
 
+
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
     # Print selected entries of the log to stdout

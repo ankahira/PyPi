@@ -1,6 +1,7 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import chainermn
 
 
 class AlexNet(chainer.Chain):
@@ -18,15 +19,19 @@ class AlexNet(chainer.Chain):
             self.fc8 = L.Linear(None, num_classes)
 
     def forward(self, x):
-        with self.comm.rank == 0:
+        if self.comm.rank == 0:
             h = F.max_pooling_2d(F.local_response_normalization(F.relu(self.conv1(x))), 3, stride=2)
             h = F.max_pooling_2d(F.local_response_normalization(F.relu(self.conv2(h))), 3, stride=2)
             h = F.relu(self.conv3(h))
             h = F.relu(self.conv4(h))
             h = F.max_pooling_2d(F.relu(self.conv5(h)), 3, stride=2)
+            chainermn.functions.send(h, self.comm, rank=1)
+            print("sent meesage")
 
-        with self.comm.rank == 1:
+        if self.comm.rank == 1:
+            h = chainermn.functions.recv(self.comm, rank=0)
             h = F.dropout(F.relu(self.fc6(h)))
             h = F.dropout(F.relu(self.fc7(h)))
             h = self.fc8(h)
+            print("Finished forward pass", self.comm.rank)
             return h

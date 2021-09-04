@@ -7,6 +7,7 @@ from chainer import training
 from chainer.training import extensions
 from chainer.datasets import get_cifar10
 import chainermn
+import numpy as np
 
 from models.alexnet_model_parallel import AlexNet
 from config import config
@@ -42,7 +43,7 @@ def main():
     device.use()
 
     # Create a same model object as what you used for training
-    model = L.Classifier(AlexNet(comm, num_classes=10))
+    model = AlexNet(comm, num_classes=10)
     optimizer = chainer.optimizers.MomentumSGD(0.001)
     optimizer.setup(model)
 
@@ -58,7 +59,9 @@ def main():
 
     # Prepare data
     train, test = get_cifar10()
-    x = test.__getitem__(0)
+    x = test.__getitem__(0)[0]
+    x = np.expand_dims(x, axis=0)
+    print(x.shape)
     with chainer.using_config('train', False):
         prediction = model.forward(x)
 
